@@ -52,22 +52,77 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 # ==========================================================
+# Theme Toggle
+# ==========================================================
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "dark"
+
+st.session_state.theme_mode = "dark" if st.sidebar.toggle("Dark mode", value=st.session_state.theme_mode == "dark") else "light"
+
+# ==========================================================
 # Custom CSS
 # ==========================================================
+if st.session_state.theme_mode == "dark":
+    palette = {
+        "bg": "linear-gradient(135deg, #020817 0%, #0f172a 35%, #111827 100%)",
+        "sidebar": "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.9))",
+        "text": "#e2e8f0",
+        "muted": "#94a3b8",
+        "panel": "rgba(15, 23, 42, 0.7)",
+        "border": "rgba(148, 163, 184, 0.18)",
+        "shadow": "rgba(2, 6, 23, 0.3)"
+    }
+else:
+    palette = {
+        "bg": "linear-gradient(135deg, #f8fbff 0%, #eef6ff 35%, #f8fafc 100%)",
+        "sidebar": "linear-gradient(180deg, rgba(15,23,42,0.958), rgba(15,23,42,0.9))",
+        "text": "#0f172a",
+        "muted": "#475569",
+        "panel": "rgba(255,255,255,0.82)",
+        "border": "rgba(148, 163, 184, 0.22)",
+        "shadow": "rgba(15, 23, 42, 0.08)"
+    }
 
 st.markdown(
-"""
+f"""
 <style>
 
-.block-container{
-    padding-top:2rem;
-}
+html, body, [data-testid="stAppViewContainer"] {{
+    background: {palette['bg']};
+    color: {palette['text']};
+}}
 
-.footer{
-    text-align:center;
-    color:gray;
-    margin-top:40px;
-}
+[data-testid="stSidebar"] {{
+    background: {palette['sidebar']};
+    border-right: 1px solid {palette['border']};
+    color: #f8fafc;
+}}
+
+.block-container {{
+    padding-top: 2rem;
+}}
+
+.stAlert, .stDataFrame, [data-testid="stExpander"], .stFileUploader, .stTextArea {{
+    border-radius: 16px;
+    border: 1px solid {palette['border']};
+    box-shadow: 0 8px 20px {palette['shadow']};
+}}
+
+.footer {{
+    text-align: center;
+    color: {palette['muted']};
+    margin-top: 40px;
+    font-size: 0.9rem;
+}}
+
+div[data-testid="stButton"] > button {{
+    border-radius: 12px;
+    font-weight: 600;
+}}
+
+p, li, h1, h2, h3, h4, h5, h6, label, .stMarkdown {{
+    color: {palette['text']};
+}}
 
 </style>
 """,
