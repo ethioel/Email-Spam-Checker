@@ -191,14 +191,16 @@ html, body, [data-testid="stAppViewContainer"] {
     gap: 10px;
 }
 
-.brand-name {
+/* Qualified with .brand-mark so this outranks Streamlit's own
+   [data-testid="stMarkdownContainer"] a rule and keeps the label clean. */
+.brand-mark a.brand-name {
     font-size: 1.15rem;
     font-weight: 700;
     color: #f8fafc;
     text-decoration: none;
 }
 
-.brand-name:hover {
+.brand-mark a.brand-name:hover {
     text-decoration: underline;
 }
 
