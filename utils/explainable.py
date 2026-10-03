@@ -1,437 +1,223 @@
-"""
-============================================================
-Explainable AI Utilities
-Author: Oli Bekele
+"""Explainable AI (XAI) helpers.
 
-This module provides Explainable AI (XAI) utilities for the
-Email Spam Classification project.
+Perceptron predictions are explained by attributing the decision score to
+individual TF-IDF features::
 
-It explains Perceptron predictions by calculating how much
-each TF-IDF feature contributed to the final decision.
+    contribution = tfidf_value * model_weight
 
-Contribution Formula
---------------------
-Contribution = TF-IDF × Model Weight
-
-Positive Contribution  -> Pushes prediction toward Spam
-
-Negative Contribution  -> Pushes prediction toward Ham
-============================================================
+A positive contribution pushes the prediction toward **Spam**, a negative one
+toward **Ham**. Because a Perceptron is linear and has no intercept in
+``coef_``, summing the contributions reproduces the decision score.
 """
 
-import pandas as pd
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
+
+SPAM, HAM, NEUTRAL = "Spam", "Ham", "Neutral"
 
 
-# ==========================================================
-# Explain Prediction
-# ==========================================================
+def _feature_types(words) -> np.ndarray:
+    """Label each feature ``Unigram`` or ``Bigram`` by counting spaces.
 
-def explain_prediction(model, vectorizer, vector):
+    ``get_feature_names_out()`` returns a pandas Index, which on pandas 3.x has
+    the new string dtype rather than a NumPy ``U`` dtype. ``np.char.count`` has
+    no loop for that dtype, so the values are coerced explicitly.
     """
-    Explain a prediction by calculating feature contributions.
+    values = np.asarray(words, dtype=str)
+    return np.where(np.char.count(values, " ") > 0, "Bigram", "Unigram")
+
+
+def explain_prediction(model, vectorizer, vector) -> pd.DataFrame:
+    """Explain one prediction by scoring each active TF-IDF feature.
 
     Parameters
     ----------
-    model : sklearn.linear_model.Perceptron
-        Trained Perceptron model.
-
-    vectorizer : sklearn.feature_extraction.text.TfidfVectorizer
-        Trained TF-IDF vectorizer.
-
-    vector : scipy sparse matrix
-        TF-IDF vector of a single email.
+    model
+        Trained Perceptron.
+    vectorizer
+        Fitted TF-IDF vectorizer.
+    vector
+        Sparse row of TF-IDF values for a single email.
 
     Returns
     -------
     pandas.DataFrame
-
-    Columns
-    -------
-    Word
-    Feature Type
-    TF-IDF
-    Weight
-    Contribution
-    Direction
+        Columns ``Word``, ``Feature Type``, ``TF-IDF``, ``Weight``,
+        ``Contribution`` and ``Direction``, sorted by descending absolute
+        contribution. Empty when the email matched no known vocabulary.
     """
+    tfidf_values = np.asarray(vector.todense()).ravel()
+    active = np.flatnonzero(tfidf_values)
 
-    feature_names = vectorizer.get_feature_names_out()
-
-    tfidf_values = vector.toarray()[0]
-
-    weights = model.coef_[0]
-
-    indices = np.where(tfidf_values > 0)[0]
-
-    rows = []
-
-    for idx in indices:
-
-        word = feature_names[idx]
-
-        tfidf = tfidf_values[idx]
-
-        weight = weights[idx]
-
-        contribution = tfidf * weight
-
-        # ----------------------------------------------
-        # Feature Type
-        # ----------------------------------------------
-
-        feature_type = (
-            "Bigram"
-            if " " in word
-            else "Unigram"
+    if active.size == 0:
+        return pd.DataFrame(
+            columns=[
+                "Word",
+                "Feature Type",
+                "TF-IDF",
+                "Weight",
+                "Contribution",
+                "Direction",
+            ]
         )
 
-        # ----------------------------------------------
-        # Prediction Direction
-        # ----------------------------------------------
+    feature_names = vectorizer.get_feature_names_out()
+    weights = model.coef_[0]
 
-        if contribution > 0:
+    words = feature_names[active]
+    tfidf = tfidf_values[active]
+    weight = weights[active]
+    contribution = tfidf * weight
 
-            direction = "Spam"
+    # Rank on the exact values, then round for display. Rounding first would
+    # merge ties and could reorder features whose contributions differ only
+    # beyond the fourth decimal.
+    order = np.argsort(-np.abs(contribution))
 
-        elif contribution < 0:
-
-            direction = "Ham"
-
-        else:
-
-            direction = "Neutral"
-
-        rows.append({
-
-            "Word": word,
-
-            "Feature Type": feature_type,
-
-            "TF-IDF": round(tfidf, 4),
-
-            "Weight": round(weight, 4),
-
-            "Contribution": round(contribution, 4),
-
-            "Direction": direction
-
-        })
-
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-
-        return df
-
-    # Sort by absolute contribution
-
-    df = df.sort_values(
-
-        by="Contribution",
-
-        key=np.abs,
-
-        ascending=False
-
-    ).reset_index(drop=True)
-
-    return df
-
-
-# ==========================================================
-# Top Spam Words
-# ==========================================================
-
-def top_spam_words(df, top_n=10):
-    """
-    Return the words that contributed the most
-    toward a Spam prediction.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-
-    top_n : int
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-
-    if df.empty:
-
-        return df
-
-    spam_df = df[
-
-        df["Contribution"] > 0
-
-    ].copy()
-
-    spam_df = spam_df.sort_values(
-
-        by="Contribution",
-
-        ascending=False
-
+    return pd.DataFrame(
+        {
+            "Word": words[order],
+            "Feature Type": _feature_types(words[order]),
+            "Direction": np.select(
+                [contribution[order] > 0, contribution[order] < 0],
+                [SPAM, HAM],
+                default=NEUTRAL,
+            ),
+            "Contribution": np.round(contribution[order], 4),
+            "TF-IDF": np.round(tfidf[order], 4),
+            "Weight": np.round(weight[order], 4),
+        }
     )
 
+
+def top_spam_words(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+    """Return the strongest features pushing a prediction toward Spam."""
+    if df.empty:
+        return df
+    spam_df = df[df["Contribution"] > 0].sort_values(
+        "Contribution", ascending=False
+    )
     return spam_df.head(top_n)
 
 
-# ==========================================================
-# Top Ham Words
-# ==========================================================
+def top_ham_words(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+    """Return the strongest features pushing a prediction toward Ham."""
+    if df.empty:
+        return df
+    ham_df = df[df["Contribution"] < 0].sort_values(
+        "Contribution", ascending=True
+    )
+    return ham_df.head(top_n)
 
-def top_ham_words(df, top_n=10):
-    """
-    Return the words that contributed the most
-    toward a Ham prediction.
+
+def prediction_summary(df: pd.DataFrame) -> dict:
+    """Summarise the feature contributions of a single prediction."""
+    if df.empty:
+        return {
+            "Total Features": 0,
+            "Spam Features": 0,
+            "Ham Features": 0,
+            "Unigrams": 0,
+            "Bigrams": 0,
+        }
+
+    return {
+        "Total Features": int(len(df)),
+        "Spam Features": int((df["Direction"] == SPAM).sum()),
+        "Ham Features": int((df["Direction"] == HAM).sum()),
+        "Unigrams": int((df["Feature Type"] == "Unigram").sum()),
+        "Bigrams": int((df["Feature Type"] == "Bigram").sum()),
+    }
+
+
+def vocabulary_frame(model, vectorizer) -> pd.DataFrame:
+    """Return every learned feature with its weight and n-gram type.
+
+    Built once and cached by the caller: it is a 10k-row frame recomputed on
+    every rerun of the Model Analytics page in the previous implementation.
 
     Parameters
     ----------
-    df : pandas.DataFrame
-
-    top_n : int
+    model
+        Trained Perceptron.
+    vectorizer
+        Fitted TF-IDF vectorizer.
 
     Returns
     -------
     pandas.DataFrame
+        Columns ``Word``, ``Feature Type`` and ``Weight``.
     """
-
-    if df.empty:
-
-        return df
-
-    ham_df = df[
-
-        df["Contribution"] < 0
-
-    ].copy()
-
-    ham_df = ham_df.sort_values(
-
-        by="Contribution",
-
-        ascending=True
-
+    words = vectorizer.get_feature_names_out()
+    return pd.DataFrame(
+        {
+            "Word": words,
+            "Feature Type": _feature_types(words),
+            "Weight": model.coef_[0],
+        }
     )
 
-    return ham_df.head(top_n)
 
-# ==========================================================
-# Prediction Summary
-# ==========================================================
-
-def prediction_summary(df):
-    """
-    Generate a summary of the feature contributions.
+def global_feature_importance(model, vectorizer, top_n: int = 20):
+    """Return the globally strongest Spam and Ham features.
 
     Parameters
     ----------
-    df : pandas.DataFrame
-
-    Returns
-    -------
-    dict
-        Dictionary containing summary statistics.
-    """
-
-    if df.empty:
-
-        return {
-
-            "Total Features": 0,
-
-            "Spam Features": 0,
-
-            "Ham Features": 0,
-
-            "Unigrams": 0,
-
-            "Bigrams": 0
-
-        }
-
-    spam_features = (df["Contribution"] > 0).sum()
-
-    ham_features = (df["Contribution"] < 0).sum()
-
-    unigrams = (df["Feature Type"] == "Unigram").sum()
-
-    bigrams = (df["Feature Type"] == "Bigram").sum()
-
-    return {
-
-        "Total Features": len(df),
-
-        "Spam Features": spam_features,
-
-        "Ham Features": ham_features,
-
-        "Unigrams": unigrams,
-
-        "Bigrams": bigrams
-
-    }
-
-
-# ==========================================================
-# Global Feature Importance
-# ==========================================================
-
-def global_feature_importance(model, vectorizer, top_n=20):
-    """
-    Return the globally most influential words learned
-    by the Perceptron model.
-
-    Parameters
-    ----------
-    model : trained Perceptron
-
-    vectorizer : trained TF-IDF Vectorizer
-
-    top_n : int
+    model
+        Trained Perceptron.
+    vectorizer
+        Fitted TF-IDF vectorizer.
+    top_n
+        Rows per side.
 
     Returns
     -------
     tuple
-        (top_spam_words, top_ham_words)
+        ``(spam_df, ham_df)``
     """
+    importance = vocabulary_frame(model, vectorizer)
 
-    feature_names = vectorizer.get_feature_names_out()
-
-    weights = model.coef_[0]
-
-    feature_types = [
-
-        "Bigram" if " " in word else "Unigram"
-
-        for word in feature_names
-
-    ]
-
-    importance = pd.DataFrame({
-
-        "Word": feature_names,
-
-        "Feature Type": feature_types,
-
-        "Weight": weights
-
-    })
-
-    spam = (
-
-        importance
-
-        .sort_values(
-
-            by="Weight",
-
-            ascending=False
-
-        )
-
-        .head(top_n)
-
-        .reset_index(drop=True)
-
-    )
-
-    ham = (
-
-        importance
-
-        .sort_values(
-
-            by="Weight",
-
-            ascending=True
-
-        )
-
-        .head(top_n)
-
-        .reset_index(drop=True)
-
-    )
-
+    spam = importance.nlargest(top_n, "Weight").reset_index(drop=True)
+    ham = importance.nsmallest(top_n, "Weight").reset_index(drop=True)
     return spam, ham
 
 
-# ==========================================================
-# Decision Explanation
-# ==========================================================
-
-def explain_decision(score):
-    """
-    Convert a Perceptron decision score into
-    an easy-to-understand explanation.
+def explain_decision(score: float) -> dict:
+    """Turn a Perceptron decision score into a human-readable explanation.
 
     Parameters
     ----------
-    score : float
+    score
+        Raw decision function value.
 
     Returns
     -------
     dict
+        Keys ``Prediction``, ``Confidence``, ``Score`` and ``Interpretation``.
     """
+    magnitude = abs(score)
 
-    abs_score = abs(score)
-
-    if abs_score >= 5:
-
+    if magnitude >= 5:
         confidence = "Very High"
-
-    elif abs_score >= 3:
-
+        interpretation = "The model is extremely confident in this prediction."
+    elif magnitude >= 3:
         confidence = "High"
-
-    elif abs_score >= 1:
-
+        interpretation = "The prediction is made with high confidence."
+    elif magnitude >= 1:
         confidence = "Moderate"
-
+        interpretation = "The prediction is reasonably confident."
     else:
-
         confidence = "Low"
-
-    prediction = "Spam" if score > 0 else "Ham"
-
-    if abs_score >= 5:
-
         interpretation = (
-            "The model is extremely confident in this prediction."
-        )
-
-    elif abs_score >= 3:
-
-        interpretation = (
-            "The prediction is made with high confidence."
-        )
-
-    elif abs_score >= 1:
-
-        interpretation = (
-            "The prediction is reasonably confident."
-        )
-
-    else:
-
-        interpretation = (
-            "The email is close to the decision boundary and "
-            "may be difficult to classify."
+            "The email is close to the decision boundary and may be "
+            "difficult to classify."
         )
 
     return {
-
-        "Prediction": prediction,
-
+        "Prediction": SPAM if score > 0 else HAM,
         "Confidence": confidence,
-
         "Score": round(score, 4),
-
-        "Interpretation": interpretation
-
+        "Interpretation": interpretation,
     }

@@ -1,128 +1,129 @@
-"""
-Text Preprocessing Utilities
+"""Text preprocessing used by the training pipeline and the app.
 
-
-This module contains all text preprocessing
-functions used throughout the application.
+The cleaning order below is the contract between the trained vectorizer and the
+live app: changing it will silently invalidate the model. Note in particular
+that stopword removal and lemmatisation are both active here, so the NLTK
+corpora are a hard requirement rather than an optional nicety.
 """
+
+from __future__ import annotations
 
 import re
 import string
-import nltk
 
+import nltk
+import pandas as pd
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
+# ==========================================================
+# NLTK resources
+# ==========================================================
 
-# --------------------------------------------------
-# Download NLTK Resources
-# --------------------------------------------------
-
-nltk.download("stopwords", quiet=True)
-nltk.download("wordnet", quiet=True)
-
-
-# --------------------------------------------------
-# Initialize NLP Objects
-# --------------------------------------------------
-
-STOP_WORDS = set(stopwords.words("english"))
-
-LEMMATIZER = WordNetLemmatizer()
+def _download(resource: str) -> None:
+    """Best-effort download of a single NLTK corpus."""
+    try:
+        nltk.data.find(f"corpora/{resource}")
+    except LookupError:
+        nltk.download(resource, quiet=True)
 
 
-# --------------------------------------------------
-# Text Cleaning Function
-# --------------------------------------------------
+def _load_resources() -> tuple[frozenset, WordNetLemmatizer]:
+    """Return the stopword set and lemmatizer, downloading corpora if needed.
+
+    Availability is confirmed by actually exercising each resource rather than
+    by ``nltk.data.find``. On NLTK 3.10 the wordnet corpus resolves only as
+    ``wordnet.zip``, so a plain ``find("corpora/wordnet")`` reports a false
+    negative even though the lemmatizer works fine.
+
+    Missing corpora would not raise on their own: the lemmatizer would quietly
+    degrade and change the token stream, so a genuinely unusable corpus raises
+    a clear error instead of silently skewing predictions.
+    """
+    for resource in ("stopwords", "wordnet"):
+        _download(resource)
+
+    try:
+        words = frozenset(stopwords.words("english"))
+        lemmatizer = WordNetLemmatizer()
+        lemmatizer.lemmatize("tests")
+    except LookupError as exc:
+        raise RuntimeError(
+            "The NLTK corpora required by this project are unavailable "
+            f"({exc}). Run `python -m nltk.downloader stopwords wordnet` once "
+            "with network access, then restart the app."
+        ) from exc
+
+    return words, lemmatizer
+
+
+STOP_WORDS, LEMMATIZER = _load_resources()
+
+# ==========================================================
+# Precompiled cleaning rules
+#
+# Compiled once at import time. The previous implementation recompiled every
+# regex and rebuilt the punctuation table on each call, which is measurable
+# overhead when preprocessing tens of thousands of emails.
+# ==========================================================
+
+_HTML_RE = re.compile(r"<.*?>")
+_URL_RE = re.compile(r"http\S+|www\S+")
+_EMAIL_RE = re.compile(r"\S+@\S+")
+_NUMBER_RE = re.compile(r"\d+")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+_PUNCT_TABLE = str.maketrans("", "", string.punctuation)
+
 
 def preprocess_text(text: str) -> str:
-    """
-    Clean and preprocess email text.
+    """Clean and normalise a single email.
 
-    Steps
-    -----
-    1. Lowercase
-    2. Remove HTML
-    3. Remove URLs
-    4. Remove Email Addresses
-    5. Remove Numbers
-    6. Remove Punctuation
-    7. Remove Extra Spaces
-    8. Remove Stopwords
-    9. Lemmatize
+    Steps: lowercase, strip HTML, URLs, email addresses, numbers and
+    punctuation, collapse whitespace, drop stopwords, then lemmatise.
 
     Parameters
     ----------
-    text : str
+    text
+        Raw email body.
 
     Returns
     -------
     str
-        Cleaned email.
+        Whitespace-separated cleaned tokens, ready for the vectorizer.
     """
-
     if not isinstance(text, str):
         return ""
 
-    text = text.lower()
+    text = _HTML_RE.sub(" ", text.lower())
+    text = _URL_RE.sub(" ", text)
+    text = _EMAIL_RE.sub(" ", text)
+    text = _NUMBER_RE.sub(" ", text)
+    text = text.translate(_PUNCT_TABLE)
+    text = _WHITESPACE_RE.sub(" ", text).strip()
 
-    # Remove HTML
+    if not text:
+        return ""
 
-    text = re.sub(r"<.*?>", " ", text)
-
-    # Remove URLs
-
-    text = re.sub(r"http\S+|www\S+", " ", text)
-
-    # Remove Email Addresses
-
-    text = re.sub(r"\S+@\S+", " ", text)
-
-    # Remove Numbers
-
-    text = re.sub(r"\d+", " ", text)
-
-    # Remove Punctuation
-
-    text = text.translate(
-        str.maketrans(
-            "",
-            "",
-            string.punctuation
-        )
+    return " ".join(
+        LEMMATIZER.lemmatize(word) for word in text.split() if word not in STOP_WORDS
     )
 
-    # Remove Extra Spaces
 
-    text = re.sub(r"\s+", " ", text).strip()
+def preprocess_series(series: pd.Series) -> pd.Series:
+    """Apply :func:`preprocess_text` to every value of a Series.
 
-    words = text.split()
+    Missing values become empty strings rather than ``NaN`` so the result can be
+    handed straight to the vectorizer.
 
-    words = [
+    Parameters
+    ----------
+    series
+        Series of raw email bodies.
 
-        LEMMATIZER.lemmatize(word)
-
-        for word in words
-
-        if word not in STOP_WORDS
-
-    ]
-
-    return " ".join(words)
-
-
-# --------------------------------------------------
-# Optional Utility
-# --------------------------------------------------
-
-def preprocess_dataframe(df, column):
+    Returns
+    -------
+    pandas.Series
+        Series of cleaned emails, aligned with the input index.
     """
-    Apply preprocessing to
-    an entire dataframe column.
-    """
-
-    df = df.copy()
-
-    df[column] = df[column].apply(preprocess_text)
-
-    return df
+    return series.astype("object").where(series.notna(), "").map(preprocess_text)

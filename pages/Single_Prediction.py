@@ -1,782 +1,301 @@
-# ==========================================================
-# Single Email Prediction
-# Email Spam Classification System
-# ==========================================================
+"""Single email classification with explainable AI output."""
 
-import streamlit as st
-import pandas as pd
 from datetime import datetime
 
-from utils.preprocessing import preprocess_text
+import pandas as pd
+import streamlit as st
 
-from utils.model_loader import (
-    load_model,
-    predict_email,
-    calculate_confidence
-)
-
+from utils import theme
 from utils.explainable import (
+    explain_decision,
     explain_prediction,
-    top_spam_words,
+    prediction_summary,
     top_ham_words,
-    explain_decision
+    top_spam_words,
 )
+from utils.model_loader import load_model, predict_email
+from utils.preprocessing import preprocess_text
+from utils.sidebar import setup_page
+from utils.visualization import plot_confidence_gauge, plot_feature_contributions
 
-from utils.visualization import (
-    plot_confidence_gauge,
-    plot_feature_contributions,
-    plot_decision_score
-)
-
-# ==========================================================
-# Page Configuration
-# ==========================================================
-
-st.set_page_config(
-    page_title="Single Prediction",
-    page_icon="📧",
-    layout="wide"
-)
-
-# ==========================================================
-# Load Model
-# ==========================================================
+# Page configuration, sidebar and stylesheet in one call.
+setup_page("Single Prediction", "📧")
 
 model, vectorizer = load_model()
-
-# ==========================================================
-# Session State
-# ==========================================================
-
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# ==========================================================
-# Theme Toggle
-# ==========================================================
-if "theme_mode" not in st.session_state:
-    st.session_state.theme_mode = "dark"
-
-st.session_state.theme_mode = "dark" if st.sidebar.toggle("Dark mode", value=st.session_state.theme_mode == "dark") else "light"
-
-# ==========================================================
-# Custom CSS
-# ==========================================================
-if st.session_state.theme_mode == "dark":
-    palette = {
-        "bg": "linear-gradient(135deg, #020817 0%, #0f172a 35%, #111827 100%)",
-        "sidebar": "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.9))",
-        "text": "#e2e8f0",
-        "muted": "#94a3b8",
-        "panel": "rgba(15, 23, 42, 0.7)",
-        "border": "rgba(148, 163, 184, 0.18)",
-        "shadow": "rgba(2, 6, 23, 0.3)"
-    }
-else:
-    palette = {
-        "bg": "linear-gradient(135deg, #f8fbff 0%, #eef6ff 35%, #f8fafc 100%)",
-        "sidebar": "linear-gradient(180deg, rgba(15,23,42,0.958), rgba(15,23,42,0.9))",
-        "text": "#0f172a",
-        "muted": "#475569",
-        "panel": "rgba(255,255,255,0.82)",
-        "border": "rgba(148, 163, 184, 0.22)",
-        "shadow": "rgba(15, 23, 42, 0.08)"
-    }
-
-st.markdown(
-f"""
-<style>
-
-html, body, [data-testid="stAppViewContainer"] {{
-    background: {palette['bg']};
-    color: {palette['text']};
-}}
-
-[data-testid="stSidebar"] {{
-    background: {palette['sidebar']};
-    border-right: 1px solid {palette['border']};
-    color: #f8fafc;
-}}
-
-.block-container {{
-    padding-top: 2rem;
-}}
-
-.stAlert, .stDataFrame, [data-testid="stExpander"], .stFileUploader, .stTextArea {{
-    border-radius: 16px;
-    border: 1px solid {palette['border']};
-    box-shadow: 0 8px 20px {palette['shadow']};
-}}
-
-.footer {{
-    text-align: center;
-    color: {palette['muted']};
-    margin-top: 40px;
-    font-size: 0.9rem;
-}}
-
-div[data-testid="stButton"] > button {{
-    border-radius: 12px;
-    font-weight: 600;
-}}
-
-p, li, h1, h2, h3, h4, h5, h6, label, .stMarkdown {{
-    color: {palette['text']};
-}}
-
-</style>
-""",
-unsafe_allow_html=True
-)
-
-# ==========================================================
-# Sidebar
-# ==========================================================
-
-st.sidebar.title("📧 Single Prediction")
-
-st.sidebar.markdown("---")
-
-st.sidebar.success(
-"""
-Predict whether a single
-email is Spam or Ham.
-"""
-)
-
-st.sidebar.markdown("## Current Model")
-
-st.sidebar.write("✅ Perceptron")
-
-st.sidebar.write("✅ TF-IDF")
-
-st.sidebar.write("✅ 10,000 Features")
-
-st.sidebar.write("✅ Unigrams + Bigrams")
-
-st.sidebar.markdown("---")
-
-st.sidebar.info(
-"""
-Tips
-
-• Paste the complete email.
-
-• Longer emails generally
-produce better predictions.
-
-• Decision Score indicates
-how confident the model is.
-"""
-)
+st.session_state.setdefault("history", [])
 
 # ==========================================================
 # Header
 # ==========================================================
 
-st.title("📧 Single Email Prediction")
-
-st.caption(
-"""
-Predict whether an email is Spam or Ham using the trained
-Perceptron Machine Learning model.
-"""
+theme.page_header(
+    "📧 Single Email Prediction",
+    "Predict whether an email is Spam or Ham with the trained Perceptron model.",
 )
 
 st.divider()
 
 # ==========================================================
-# Layout
+# Input
 # ==========================================================
 
-left, right = st.columns([2.3,1])
-
-# ==========================================================
-# Left Column
-# ==========================================================
+left, right = st.columns([2.3, 1])
 
 with left:
-
-    email = st.text_area(
-
+    typed_email = st.text_area(
         "Paste Email",
-
         height=320,
-
-        placeholder="""
-Example
-
-Congratulations!
-
-You have won a $1000 Gift Card.
-
-Click here to claim your prize.
-
-OR
-
-Paste any email here...
-"""
+        placeholder=(
+            "Example\n\nCongratulations!\n\nYou have won a $1000 Gift Card.\n\n"
+            "Click here to claim your prize.\n\nOR\n\nPaste any email here..."
+        ),
     )
-
-# ==========================================================
-# Right Column
-# ==========================================================
 
 with right:
-
     st.subheader("Upload Email")
-
-    uploaded_file = st.file_uploader(
-
-        "Upload TXT File",
-
-        type=["txt"]
-
-    )
-
-    if uploaded_file is not None:
-
-        email = uploaded_file.read().decode("utf-8")
+    uploaded_file = st.file_uploader("Upload TXT File", type=["txt"])
 
     st.markdown("---")
 
-    st.metric(
-        "Vocabulary",
-        "10,000"
+    theme.metric_row(
+        [
+            ("Vocabulary", "10,000"),
+            ("Algorithm", "Perceptron"),
+            ("Features", "TF-IDF"),
+            ("N-grams", "1-2"),
+        ]
     )
 
-    st.metric(
-        "Algorithm",
-        "Perceptron"
-    )
-
-    st.metric(
-        "Features",
-        "TF-IDF"
-    )
-
-    st.metric(
-        "N-grams",
-        "1-2"
-    )
+# An uploaded file wins over whatever is currently typed.
+email = (
+    uploaded_file.read().decode("utf-8", errors="replace")
+    if uploaded_file is not None
+    else typed_email
+)
 
 st.divider()
 
 # ==========================================================
-# Predict Button
+# Predict
 # ==========================================================
 
-predict = st.button(
-
-    "🚀 Predict Email",
-
-    use_container_width=True
-
-)
-
-# ==========================================================
-# Prediction Engine
-# ==========================================================
-
-if predict:
-
+if st.button("🚀 Predict Email", width="stretch"):
     if not email.strip():
-
-        st.warning(
-            "⚠️ Please enter or upload an email."
-        )
-
+        st.warning("⚠️ Please enter or upload an email.")
         st.stop()
 
     with st.spinner("Analyzing email..."):
-
-        # --------------------------------------
-        # Preprocess
-        # --------------------------------------
-
         clean_email = preprocess_text(email)
-
-        # --------------------------------------
-        # Prediction
-        # --------------------------------------
-
         result = predict_email(clean_email)
 
-        prediction = result["prediction"]
-
-        label = result["label"]
-
-        decision_score = result["decision_score"]
-
-        vector = result["vector"]
-
-        model = result["model"]
-
-        vectorizer = result["vectorizer"]
-
-        confidence = calculate_confidence(
-            decision_score
-        )
-
-        # --------------------------------------
-        # Save History
-        # --------------------------------------
+        if not clean_email:
+            st.warning(
+                "⚠️ Nothing usable was left after cleaning (no words matched "
+                "the model's vocabulary). Try an email with more text."
+            )
+            st.stop()
 
         st.session_state.history.append(
-
             {
-
-                "Time":
-                datetime.now().strftime("%H:%M:%S"),
-
-                "Prediction":
-                label,
-
-                "Confidence (%)":
-                confidence,
-
-                "Decision Score":
-                round(decision_score,4)
-
+                "Time": datetime.now().strftime("%H:%M:%S"),
+                "Prediction": result["label"],
+                "Confidence (%)": result["confidence"],
+                "Decision Score": round(result["decision_score"], 4),
             }
-
         )
 
     st.success("✅ Analysis Completed")
-
     st.divider()
 
-    # ======================================================
-    # Prediction Result
-    # ======================================================
+    # ----------------------------------------------------------
+    # Result
+    # ----------------------------------------------------------
 
-    col1, col2 = st.columns(2)
+    label = result["label"]
+    decision_score = result["decision_score"]
+    confidence = result["confidence"]
 
-    # ------------------------------------------------------
-    # Prediction Card
-    # ------------------------------------------------------
+    result_col, confidence_col = st.columns(2)
 
-    with col1:
-
+    with result_col:
         st.subheader("📌 Prediction")
-
-        if prediction == 1:
-
+        if label == "Spam":
             st.error("🚨 SPAM EMAIL")
-
         else:
-
             st.success("✅ HAM EMAIL")
+        st.metric("Decision Score", f"{decision_score:.4f}")
 
-        st.metric(
-            "Decision Score",
-            f"{decision_score:.4f}"
-        )
-
-    # ------------------------------------------------------
-    # Confidence
-    # ------------------------------------------------------
-
-    with col2:
-
+    with confidence_col:
         st.subheader("🎯 Confidence")
-
-        st.metric(
-            "Estimated Confidence",
-            f"{confidence:.1f}%"
-        )
-
-        fig = plot_confidence_gauge(confidence)
-
-        st.pyplot(
-            fig,
-            use_container_width=True
-        )
+        st.metric("Estimated Confidence", f"{confidence:.1f}%")
+        st.pyplot(plot_confidence_gauge(confidence))
 
     st.divider()
 
-    # ======================================================
-    # Decision Interpretation
-    # ======================================================
+    # ----------------------------------------------------------
+    # Decision interpretation
+    # ----------------------------------------------------------
 
     st.subheader("🧠 Decision Interpretation")
 
     explanation = explain_decision(decision_score)
 
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-
-        st.metric(
-            "Predicted Class",
-            explanation["Prediction"]
-        )
-
-    with c2:
-
-        st.metric(
-            "Confidence Level",
-            explanation["Confidence"]
-        )
-
-    with c3:
-
-        st.metric(
-            "Decision Score",
-            explanation["Score"]
-        )
-
-    st.info(
-        """
-### Understanding the Decision Score
-
-• Positive score → Spam
-
-• Negative score → Ham
-
-• Larger absolute values indicate higher confidence.
-
-• Scores close to zero indicate uncertainty.
-"""
+    theme.metric_row(
+        [
+            ("Predicted Class", explanation["Prediction"]),
+            ("Confidence Level", explanation["Confidence"]),
+            ("Decision Score", explanation["Score"]),
+        ]
     )
 
-    st.divider()
-
-    # ======================================================
-    # Preprocessed Email
-    # ======================================================
+    st.info(explanation["Interpretation"])
+    st.caption(
+        "Positive score → Spam · Negative score → Ham · "
+        "Larger magnitude means higher confidence · "
+        "Scores near zero indicate uncertainty."
+    )
 
     with st.expander("🧹 View Preprocessed Email"):
-
         st.write(clean_email)
 
     st.divider()
 
-    # ======================================================
+    # ----------------------------------------------------------
     # Explainable AI
-    # ======================================================
+    # ----------------------------------------------------------
 
     st.header("🧠 Explainable AI (XAI)")
 
-    explanation_df = explain_prediction(
-        model,
-        vectorizer,
-        vector
-    )
+    explanation_df = explain_prediction(model, vectorizer, result["vector"])
 
     if explanation_df.empty:
-
-        st.warning(
-            "No influential words were found."
-        )
-
+        st.warning("No influential words were found.")
     else:
+        summary = prediction_summary(explanation_df)
 
         st.success(
-            f"The prediction was influenced by **{len(explanation_df)}** features."
+            f"The prediction was influenced by **{summary['Total Features']}** "
+            f"features ({summary['Spam Features']} toward Spam, "
+            f"{summary['Ham Features']} toward Ham)."
         )
 
-        # --------------------------------------------------
-        # Feature Summary
-        # --------------------------------------------------
-
-        total_features = len(explanation_df)
-
-        spam_features = (
-            explanation_df["Direction"] == "Spam"
-        ).sum()
-
-        ham_features = (
-            explanation_df["Direction"] == "Ham"
-        ).sum()
-
-        m1, m2, m3 = st.columns(3)
-
-        with m1:
-
-            st.metric(
-                "Total Features",
-                total_features
-            )
-
-        with m2:
-
-            st.metric(
-                "Spam Features",
-                spam_features
-            )
-
-        with m3:
-
-            st.metric(
-                "Ham Features",
-                ham_features
-            )
+        theme.metric_row(
+            [
+                ("Total Features", summary["Total Features"]),
+                ("Spam Features", summary["Spam Features"]),
+                ("Ham Features", summary["Ham Features"]),
+                ("Unigrams", summary["Unigrams"]),
+                ("Bigrams", summary["Bigrams"]),
+            ]
+        )
 
         st.divider()
-
-        # --------------------------------------------------
-        # Feature Contribution Chart
-        # --------------------------------------------------
 
         st.subheader("📊 Top Feature Contributions")
-
-        fig = plot_feature_contributions(
-            explanation_df,
-            top_n=10
-        )
-
-        st.pyplot(
-            fig,
-            use_container_width=True
-        )
-
+        st.pyplot(plot_feature_contributions(explanation_df, top_n=10))
         st.caption(
-            """
-Positive contributions push the prediction toward Spam.
-
-Negative contributions push the prediction toward Ham.
-"""
+            "Positive contributions push the prediction toward Spam; "
+            "negative contributions push it toward Ham."
         )
 
         st.divider()
 
-        # --------------------------------------------------
-        # Top Words
-        # --------------------------------------------------
+        spam_col, ham_col = st.columns(2)
 
-        left, right = st.columns(2)
-
-        with left:
-
+        with spam_col:
             st.subheader("🚨 Top Spam Features")
+            st.dataframe(top_spam_words(explanation_df), hide_index=True)
 
-            spam_df = top_spam_words(
-                explanation_df,
-                top_n=10
-            )
-
-            st.dataframe(
-                spam_df,
-                use_container_width=True,
-                hide_index=True
-            )
-
-        with right:
-
+        with ham_col:
             st.subheader("✅ Top Ham Features")
-
-            ham_df = top_ham_words(
-                explanation_df,
-                top_n=10
-            )
-
-            st.dataframe(
-                ham_df,
-                use_container_width=True,
-                hide_index=True
-            )
+            st.dataframe(top_ham_words(explanation_df), hide_index=True)
 
         st.divider()
 
-        # --------------------------------------------------
-        # Complete Feature Table
-        # --------------------------------------------------
-
-        st.subheader("📋 Complete Feature Contributions")
-
-        st.dataframe(
-            explanation_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
-        st.divider()
-
-        csv = explanation_df.to_csv(index=False)
+        with st.expander("📋 Complete Feature Contributions"):
+            st.dataframe(explanation_df, hide_index=True)
 
         st.download_button(
             "📥 Download Explanation (CSV)",
-            data=csv,
+            data=explanation_df.to_csv(index=False),
             file_name="feature_contributions.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
 
     st.divider()
 
 # ==========================================================
-# Prediction History
+# Prediction history
 # ==========================================================
 
 st.header("📜 Prediction History")
 
-if len(st.session_state.history) == 0:
-
+if not st.session_state.history:
     st.info("No predictions have been made in this session.")
-
 else:
+    history_df = pd.DataFrame(st.session_state.history)
 
-    history_df = pd.DataFrame(
-        st.session_state.history
-    )
-
-    # ======================================================
-    # Summary Metrics
-    # ======================================================
-
-    total_predictions = len(history_df)
-
-    spam_predictions = (
-        history_df["Prediction"] == "Spam"
-    ).sum()
-
-    ham_predictions = (
-        history_df["Prediction"] == "Ham"
-    ).sum()
-
-    avg_confidence = round(
-        history_df["Confidence (%)"].mean(),
-        2
-    )
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-
-        st.metric(
-            "Total Predictions",
-            total_predictions
-        )
-
-    with c2:
-
-        st.metric(
-            "Spam",
-            spam_predictions
-        )
-
-    with c3:
-
-        st.metric(
-            "Ham",
-            ham_predictions
-        )
-
-    with c4:
-
-        st.metric(
-            "Average Confidence",
-            f"{avg_confidence}%"
-        )
-
-    st.divider()
-
-    # ======================================================
-    # Prediction Distribution
-    # ======================================================
-
-    st.subheader("📊 Prediction Distribution")
-
-    prediction_counts = (
-        history_df["Prediction"]
-        .value_counts()
-    )
-
-    st.bar_chart(prediction_counts)
-
-    st.divider()
-
-    # ======================================================
-    # Confidence Trend
-    # ======================================================
-
-    st.subheader("📈 Confidence Trend")
-
-    confidence_df = history_df.copy()
-
-    confidence_df.index = range(
-        1,
-        len(confidence_df) + 1
-    )
-
-    st.line_chart(
-        confidence_df["Confidence (%)"]
+    theme.metric_row(
+        [
+            ("Total Predictions", len(history_df)),
+            ("Spam", int((history_df["Prediction"] == "Spam").sum())),
+            ("Ham", int((history_df["Prediction"] == "Ham").sum())),
+            (
+                "Average Confidence",
+                f"{round(history_df['Confidence (%)'].mean(), 2)}%",
+            ),
+        ]
     )
 
     st.divider()
 
-    # ======================================================
-    # History Table
-    # ======================================================
+    counts_col, trend_col = st.columns(2)
+
+    with counts_col:
+        st.subheader("📊 Prediction Distribution")
+        st.bar_chart(history_df["Prediction"].value_counts())
+
+    with trend_col:
+        st.subheader("📈 Confidence Trend")
+        st.line_chart(
+            history_df.reset_index(drop=True)["Confidence (%)"]
+        )
+
+    st.divider()
 
     st.subheader("📋 Prediction Records")
+    st.dataframe(history_df, hide_index=True)
 
-    st.dataframe(
+    download_col, clear_col = st.columns(2)
 
-        history_df,
-
-        use_container_width=True,
-
-        hide_index=True
-
-    )
-
-    st.divider()
-
-    # ======================================================
-    # Download History
-    # ======================================================
-
-    csv = history_df.to_csv(index=False)
-
-    st.download_button(
-
-        label="📥 Download Prediction History",
-
-        data=csv,
-
-        file_name="prediction_history.csv",
-
-        mime="text/csv",
-
-        use_container_width=True
-
-    )
-
-    # ======================================================
-    # Clear History
-    # ======================================================
-
-    if st.button(
-
-        "🗑️ Clear Prediction History",
-
-        use_container_width=True,
-
-        type="secondary"
-
-    ):
-
-        st.session_state.history = []
-
-        st.success(
-            "Prediction history cleared successfully."
+    with download_col:
+        st.download_button(
+            "📥 Download Prediction History",
+            data=history_df.to_csv(index=False),
+            file_name="prediction_history.csv",
+            mime="text/csv",
+            width="stretch",
         )
 
-        st.rerun()
+    with clear_col:
+        if st.button(
+            "🗑️ Clear Prediction History",
+            width="stretch",
+            type="secondary",
+        ):
+            st.session_state.history = []
+            st.rerun()
 
 # ==========================================================
-# About the Model
+# About the model
 # ==========================================================
 
 st.divider()
-
 st.header("ℹ️ About This Model")
 
-left, right = st.columns(2)
+info_col, xai_col = st.columns(2)
 
-with left:
-
+with info_col:
     st.info(
         """
 ### Machine Learning Model
@@ -789,8 +308,7 @@ with left:
 """
     )
 
-with right:
-
+with xai_col:
     st.info(
         """
 ### Explainable AI
@@ -802,7 +320,8 @@ This application explains predictions by displaying:
 - Decision score
 - Prediction confidence
 
-This improves transparency and helps users understand why the model classified an email as Spam or Ham.
+This improves transparency and helps users understand why the model
+classified an email as Spam or Ham.
 """
     )
 
@@ -811,22 +330,4 @@ This improves transparency and helps users understand why the model classified a
 # ==========================================================
 
 st.divider()
-
-st.markdown(
-"""
-<div style="text-align:center;color:gray;">
-
-## 📧 Email Spam Classification System
-
-Built with
-
-<b>Python • Scikit-learn • TF-IDF • Perceptron • Streamlit</b>
-
-Machine Learning Assignment
-
-© 2026 Oli Bakala
-
-</div>
-""",
-unsafe_allow_html=True
-)        
+theme.footer()
