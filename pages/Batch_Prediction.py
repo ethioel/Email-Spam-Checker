@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from utils import theme
-from utils.model_loader import DATASET, load_model, predict_batch
+from utils.model_loader import load_model, predict_batch
 from utils.preprocessing import preprocess_series
 from utils.sidebar import setup_page
 from utils.visualization import plot_length_histogram, plot_pie
@@ -335,7 +335,4 @@ else:
 # Footer
 # ==========================================================
 
-theme.footer(
-    f"Model: {DATASET['Algorithm']} + {DATASET['Vectorizer']} "
-    f"({DATASET['Vocabulary Size']:,} features)"
-)
+theme.footer()
