@@ -80,8 +80,12 @@ _PALETTES = {
 # Global stylesheet
 # ==========================================================
 
+# The <style> wrapper is mandatory. Streamlit renders markdown with raw HTML
+# enabled, but bare CSS rules are not HTML: without the wrapper the browser
+# treats them as a paragraph of text and prints them on the page.
 _CSS = Template(
     """
+<style>
 html, body, [data-testid="stAppViewContainer"] {
     background: $bg;
     color: $text;
@@ -217,6 +221,7 @@ p, li, h1, h2, h3, h4, h5, h6, label, .stMarkdown {
 h1, h2, h3, h4 {
     color: $heading;
 }
+</style>
 """
 )
 
@@ -236,22 +241,8 @@ def palette() -> dict:
 
 
 def inject_css() -> None:
-    """Inject the global stylesheet for the active theme.
-
-    Must go through ``st.html(..., unsafe_allow_javascript=True)`` rather than
-    ``st.markdown(..., unsafe_allow_html=True)``.
-
-    Streamlit 1.64 routes ``st.html`` through one of two sanitiser configs: the
-    default path strips ``<style>``, while the ``unsafe_allow_javascript`` path
-    adds ``script`` and ``style`` to ``ADD_TAGS``. ``st.markdown`` never allows
-    ``<style>`` at all, so the stylesheet is rendered as a literal paragraph of
-    text instead of being applied.
-
-    The flag is named for JavaScript but is what enables ``<style>`` here. It is
-    safe for this module because the payload is a static internal template with
-    no user input; never pass caller-supplied HTML through it.
-    """
-    st.html(_CSS.substitute(palette()), unsafe_allow_javascript=True)
+    """Inject the global stylesheet for the active theme."""
+    st.markdown(_CSS.substitute(palette()), unsafe_allow_html=True)
 
 
 def render_toggle() -> str:
