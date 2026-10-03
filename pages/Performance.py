@@ -220,4 +220,4 @@ st.divider()
 # Footer
 # ==========================================================
 
-theme.footer("Evaluation • NLP • Machine Learning")
+theme.footer()

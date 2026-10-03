@@ -18,7 +18,6 @@ import streamlit as st
 
 APP_NAME = "MailGuard"
 APP_TITLE = "Email Spam Classification System"
-AUTHOR = "Oli Bakala"
 
 THEME_KEY = "theme_mode"
 TOGGLE_KEY = "sidebar_dark_mode"
@@ -328,13 +327,12 @@ def step_row(steps: list[str]) -> None:
             )
 
 
-def footer(note: str = "") -> None:
+def footer() -> None:
     """Render the shared page footer."""
-    extra = f"<br><br>{note}" if note else ""
     st.markdown(
         f"""
         <div class="footer">
-            Developed by <b>{AUTHOR}</b>{extra}<br>
+            <b>{APP_TITLE}</b><br>
             Machine Learning • Natural Language Processing • Streamlit
         </div>
         """,

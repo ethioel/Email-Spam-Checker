@@ -155,7 +155,7 @@ The model achieved excellent performance on the testing dataset, demonstrating s
 Clone the repository:
 
 ```bash
-git clone https://github.com/21Oli/Email-Spam-Classification.git
+git clone https://github.com/<your-username>/Email-Spam-Classification.git
 ```
 
 Move into the project directory:
@@ -207,16 +207,6 @@ streamlit run app.py
 * Build a REST API for real-time inference.
 * Add continuous model retraining with new labeled emails.
 * Deploy using Docker and cloud platforms.
-
----
-
-## 👨‍💻 Author
-
-**Oli Bakala**
-
-**Program:** Data Science and Artificial Intelligence
-
-This project was developed as part of a Machine Learning assignment to demonstrate practical skills in text classification, NLP, explainable AI, model evaluation, and deployment using Streamlit.
 
 ---
 

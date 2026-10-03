@@ -242,4 +242,4 @@ st.divider()
 # Footer
 # ==========================================================
 
-theme.footer("Explainable AI • NLP • Machine Learning")
+theme.footer()

@@ -323,37 +323,7 @@ st.dataframe(
 st.divider()
 
 # ==========================================================
-# Author
-# ==========================================================
-
-st.header("👨‍💻 Author")
-
-st.write(
-    f"""
-**Developer**
-
-{theme.AUTHOR}
-
-**Project**
-
-Email Spam Classification Using Perceptron
-
-**Program**
-
-Data Science and Artificial Intelligence
-
-**Application**
-
-An interactive Machine Learning dashboard built with Streamlit, demonstrating
-an end-to-end workflow: preprocessing, feature engineering, model training,
-evaluation, Explainable AI, analytics and deployment.
-"""
-)
-
-st.divider()
-
-# ==========================================================
 # Footer
 # ==========================================================
 
-theme.footer("Machine Learning • NLP • Explainable AI")
+theme.footer()
