@@ -1,4 +1,4 @@
-"""Shared visual theme for the Email Spam Classification application.
+"""Shared visual theme for the Email Spam Checker application.
 
 This module is the single source of truth for the colour palettes, the global
 stylesheet and the small presentation helpers reused across every page. Pages
@@ -16,8 +16,8 @@ import streamlit as st
 # Branding
 # ==========================================================
 
-APP_NAME = "MailGuard"
-APP_TITLE = "Email Spam Classification System"
+APP_NAME = "Email Spam Checker"
+APP_URL = "https://mailspamchecker.streamlit.app/"
 
 THEME_KEY = "theme_mode"
 TOGGLE_KEY = "sidebar_dark_mode"
@@ -193,7 +193,13 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .brand-name {
     font-size: 1.15rem;
+    font-weight: 700;
     color: #f8fafc;
+    text-decoration: none;
+}
+
+.brand-name:hover {
+    text-decoration: underline;
 }
 
 [data-testid="stMetricValue"] {
@@ -332,7 +338,7 @@ def footer() -> None:
     st.markdown(
         f"""
         <div class="footer">
-            <b>{APP_TITLE}</b><br>
+            <b>{APP_NAME}</b><br>
             Machine Learning • Natural Language Processing • Streamlit
         </div>
         """,

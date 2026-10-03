@@ -1,1 +1,1 @@
-"""Shared utilities for the Email Spam Classification Streamlit app."""
+"""Shared utilities for the Email Spam Checker Streamlit app."""

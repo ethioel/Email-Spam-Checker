@@ -1,4 +1,4 @@
-"""Landing page for the Email Spam Classification System."""
+"""Landing page for Email Spam Checker."""
 
 import streamlit as st
 
@@ -7,7 +7,7 @@ from utils.model_loader import DATASET, load_confusion_matrix, load_metrics
 from utils.sidebar import setup_page
 
 # Page configuration, sidebar and stylesheet in one call.
-setup_page("Email Spam Classification", "📧")
+setup_page(theme.APP_NAME, "📧")
 
 metrics = load_metrics()
 
@@ -16,7 +16,7 @@ metrics = load_metrics()
 # ==========================================================
 
 theme.page_header(
-    f"📧 {theme.APP_TITLE}",
+    f"📧 {theme.APP_NAME}",
     "Machine Learning-powered email filtering with Perceptron + TF-IDF",
 )
 

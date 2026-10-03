@@ -20,12 +20,13 @@ from utils import theme
 
 
 def _render_brand() -> None:
-    """Render the branded header at the top of the sidebar."""
+    """Render the branded header, linking to the deployed app."""
     st.sidebar.markdown(
         f"""
         <div class="brand-mark">
             <span style="font-size:1.6rem;">📧</span>
-            <b class="brand-name">{theme.APP_NAME}</b>
+            <a class="brand-name" href="{theme.APP_URL}"
+               target="_blank" rel="noopener">{theme.APP_NAME}</a>
         </div>
         """,
         unsafe_allow_html=True,

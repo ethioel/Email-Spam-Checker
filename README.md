@@ -1,5 +1,7 @@
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://email-spam-classification-01.streamlit.app/)
-# 📧 Email Spam Classification Using Perceptron
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://mailspamchecker.streamlit.app/)
+# 📧 Email Spam Checker
+
+> **Live app:** <https://mailspamchecker.streamlit.app/>
 
 An end-to-end **Machine Learning** and **Natural Language Processing (NLP)** project that classifies emails as **Spam** or **Ham** using the **Perceptron Algorithm**. The project includes data preprocessing, model training, explainable AI, interactive analytics, batch prediction, and deployment with Streamlit.
 
