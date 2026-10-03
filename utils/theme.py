@@ -236,8 +236,22 @@ def palette() -> dict:
 
 
 def inject_css() -> None:
-    """Inject the global stylesheet for the active theme."""
-    st.markdown(_CSS.substitute(palette()), unsafe_allow_html=True)
+    """Inject the global stylesheet for the active theme.
+
+    Must go through ``st.html(..., unsafe_allow_javascript=True)`` rather than
+    ``st.markdown(..., unsafe_allow_html=True)``.
+
+    Streamlit 1.64 routes ``st.html`` through one of two sanitiser configs: the
+    default path strips ``<style>``, while the ``unsafe_allow_javascript`` path
+    adds ``script`` and ``style`` to ``ADD_TAGS``. ``st.markdown`` never allows
+    ``<style>`` at all, so the stylesheet is rendered as a literal paragraph of
+    text instead of being applied.
+
+    The flag is named for JavaScript but is what enables ``<style>`` here. It is
+    safe for this module because the payload is a static internal template with
+    no user input; never pass caller-supplied HTML through it.
+    """
+    st.html(_CSS.substitute(palette()), unsafe_allow_javascript=True)
 
 
 def render_toggle() -> str:
