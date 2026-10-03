@@ -197,12 +197,6 @@ st.sidebar.metric("F1 Score", "97.53%")
 
 st.sidebar.markdown("---")
 
-st.sidebar.toggle("Dark mode", key="theme_toggle_sidebar", value=st.session_state.theme_mode == "dark")
-if st.sidebar.toggle("Dark mode", value=st.session_state.theme_mode == "dark"):
-    st.session_state.theme_mode = "dark"
-else:
-    st.session_state.theme_mode = "light"
-
 # ==========================================================
 # Header
 # ==========================================================
