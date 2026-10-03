@@ -6,14 +6,9 @@ from utils import theme
 from utils.model_loader import DATASET, load_confusion_matrix, load_metrics
 from utils.sidebar import setup_page
 
-# Page configuration, sidebar and stylesheet in one call.
 setup_page(theme.APP_NAME, "📧")
 
 metrics = load_metrics()
-
-# ==========================================================
-# Header
-# ==========================================================
 
 theme.page_header(
     f"📧 {theme.APP_NAME}",
@@ -28,10 +23,6 @@ theme.hero(
 
 st.divider()
 
-# ==========================================================
-# Performance
-# ==========================================================
-
 st.subheader("📈 Model Performance")
 
 theme.metric_row(
@@ -45,10 +36,6 @@ theme.metric_row(
 
 st.divider()
 
-# ==========================================================
-# Features
-# ==========================================================
-
 st.subheader("🧰 What you can do")
 
 theme.feature_row(
@@ -61,19 +48,13 @@ theme.feature_row(
 
 st.divider()
 
-# ==========================================================
-# Pipeline
-# ==========================================================
-
 st.subheader("⚙️ How it works")
 
 theme.step_row(["Email", "Clean", "TF-IDF", "Score", "Result"])
 
 st.divider()
 
-# ==========================================================
-# Project facts
-# ==========================================================
+st.subheader("📊 Project facts")
 
 test_rows = int(load_confusion_matrix().sum())
 
@@ -83,42 +64,34 @@ with dataset_col:
     st.subheader("📊 Dataset")
     st.markdown(
         f"""
-        - Total emails: **{DATASET['Total Emails']:,}**
-        - Ham: **{DATASET['Ham Emails']:,}**
-        - Spam: **{DATASET['Spam Emails']:,}**
-        """
+- Total emails: **{DATASET['Total Emails']:,}**
+- Ham: **{DATASET['Ham Emails']:,}**
+- Spam: **{DATASET['Spam Emails']:,}**
+"""
     )
 
 with model_col:
     st.subheader("🤖 Model")
     st.markdown(
         f"""
-        - Algorithm: **{DATASET['Algorithm']}**
-        - Features: **{DATASET['Vocabulary Size']:,} TF-IDF**
-        - N-grams: **1–2**
-        - Test set: **{test_rows:,}** emails
-        """
+- Algorithm: **{DATASET['Algorithm']}**
+- Features: **{DATASET['Vocabulary Size']:,} TF-IDF**
+- N-grams: **1–2**
+- Test set: **{test_rows:,}** emails
+"""
     )
 
 st.divider()
-
-# ==========================================================
-# Quick start
-# ==========================================================
 
 st.subheader("🚀 Quick start")
 
 quick_cols = st.columns(3)
 with quick_cols[0]:
-    st.info("Open the single prediction page to test a message instantly.")
+    st.info("Open **Single Prediction** to test a message instantly.")
 with quick_cols[1]:
-    st.info("Upload a CSV to score large batches without leaving the dashboard.")
+    st.info("Use **Batch Prediction** to score large uploads without leaving the dashboard.")
 with quick_cols[2]:
-    st.info("Review model analytics for the strongest spam and ham signals.")
-
-# ==========================================================
-# Footer
-# ==========================================================
+    st.info("Open **Model Analytics** for metrics and the strongest spam and ham signals.")
 
 st.divider()
 theme.footer()

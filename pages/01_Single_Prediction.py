@@ -18,15 +18,10 @@ from utils.preprocessing import preprocess_text
 from utils.sidebar import setup_page
 from utils.visualization import plot_confidence_gauge, plot_feature_contributions
 
-# Page configuration, sidebar and stylesheet in one call.
 setup_page("Single Prediction", "📧")
 
 model, vectorizer = load_model()
 st.session_state.setdefault("history", [])
-
-# ==========================================================
-# Header
-# ==========================================================
 
 theme.page_header(
     "📧 Single Email Prediction",
@@ -34,10 +29,6 @@ theme.page_header(
 )
 
 st.divider()
-
-# ==========================================================
-# Input
-# ==========================================================
 
 left, right = st.columns([2.3, 1])
 
@@ -75,10 +66,6 @@ email = (
 
 st.divider()
 
-# ==========================================================
-# Predict
-# ==========================================================
-
 if st.button("🚀 Predict Email", width="stretch"):
     if not email.strip():
         st.warning("⚠️ Please enter or upload an email.")
@@ -107,10 +94,6 @@ if st.button("🚀 Predict Email", width="stretch"):
     st.success("✅ Analysis Completed")
     st.divider()
 
-    # ----------------------------------------------------------
-    # Result
-    # ----------------------------------------------------------
-
     label = result["label"]
     decision_score = result["decision_score"]
     confidence = result["confidence"]
@@ -131,10 +114,6 @@ if st.button("🚀 Predict Email", width="stretch"):
         st.pyplot(plot_confidence_gauge(confidence))
 
     st.divider()
-
-    # ----------------------------------------------------------
-    # Decision interpretation
-    # ----------------------------------------------------------
 
     st.subheader("🧠 Decision Interpretation")
 
@@ -159,10 +138,6 @@ if st.button("🚀 Predict Email", width="stretch"):
         st.write(clean_email)
 
     st.divider()
-
-    # ----------------------------------------------------------
-    # Explainable AI
-    # ----------------------------------------------------------
 
     st.header("🧠 Explainable AI (XAI)")
 
@@ -224,10 +199,6 @@ if st.button("🚀 Predict Email", width="stretch"):
 
     st.divider()
 
-# ==========================================================
-# Prediction history
-# ==========================================================
-
 st.header("📜 Prediction History")
 
 if not st.session_state.history:
@@ -286,10 +257,6 @@ else:
             st.session_state.history = []
             st.rerun()
 
-# ==========================================================
-# About the model
-# ==========================================================
-
 st.divider()
 st.header("ℹ️ About This Model")
 
@@ -324,10 +291,6 @@ This improves transparency and helps users understand why the model
 classified an email as Spam or Ham.
 """
     )
-
-# ==========================================================
-# Footer
-# ==========================================================
 
 st.divider()
 theme.footer()

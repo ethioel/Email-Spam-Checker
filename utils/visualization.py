@@ -170,15 +170,7 @@ def plot_metric_bars(metrics_df):
 
 
 def plot_confusion_matrix(matrix, labels=("Ham", "Spam")):
-    """Annotated confusion matrix heatmap.
-
-    Parameters
-    ----------
-    matrix
-        2x2 array; rows are the actual class, columns the prediction.
-    labels
-        Class names ordered ``[actual, predicted]``.
-    """
+    """Annotated heatmap of a 2x2 matrix ordered ``[actual, predicted]``."""
     p = palette()
     fig, ax = _figure(5, 5, p)
     ax.imshow(matrix, cmap="Blues")

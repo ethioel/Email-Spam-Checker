@@ -14,9 +14,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-# ==========================================================
-# Project paths
-# ==========================================================
+from utils import theme
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,13 +23,6 @@ VECTORIZER_PATH = BASE_DIR / "models" / "tfidf_vectorizer.pkl"
 
 METRICS_PATH = BASE_DIR / "results" / "metrics.json"
 CONFUSION_MATRIX_PATH = BASE_DIR / "results" / "confusion_matrix.npy"
-
-# ==========================================================
-# Dataset summary
-#
-# Single source of truth: previously these numbers were copy-pasted across
-# app.py, About.py and Performance.py, where they had already drifted apart.
-# ==========================================================
 
 DATASET = {
     "Total Emails": 193_812,
@@ -57,10 +48,6 @@ def get_model_info() -> dict:
     }
 
 
-# ==========================================================
-# Loading
-# ==========================================================
-
 @st.cache_resource
 def load_model():
     """Load the trained Perceptron model and TF-IDF vectorizer.
@@ -77,9 +64,10 @@ def load_model():
         if not path.exists():
             st.error(f"❌ Missing model artefact: `{path.name}`.")
             st.info(
-                "Run the training notebook first so that `models/` contains "
-                "`perceptron_model.pkl` and `tfidf_vectorizer.pkl`."
+                "Retrain the model from the Kaggle notebook, then commit "
+                "`perceptron_model.pkl` and `tfidf_vectorizer.pkl` into `models/`."
             )
+            st.link_button("Open the training notebook", theme.NOTEBOOK_URL)
             st.stop()
 
     try:
@@ -117,21 +105,10 @@ def load_confusion_matrix() -> np.ndarray:
 
 
 def classification_report(matrix: np.ndarray) -> pd.DataFrame:
-    """Derive a per-class classification report from the confusion matrix.
+    """Derive a per-class report from a ``[[ham, spam], [ham, spam]]`` matrix.
 
-    Computing the report from the stored matrix keeps every number on the
-    Performance page consistent with ``metrics.json``; the previous hard-coded
-    table (all values 0.97/0.98) did not match either artefact.
-
-    Parameters
-    ----------
-    matrix
-        Confusion matrix ordered ``[[ham, spam], [ham, spam]]``.
-
-    Returns
-    -------
-    pandas.DataFrame
-        One row per class plus macro and weighted averages.
+    Computing the report from the stored matrix keeps every displayed number
+    consistent with ``metrics.json``.
     """
 
     def ratio(numerator: float, denominator: float) -> float:
@@ -192,25 +169,11 @@ def classification_report(matrix: np.ndarray) -> pd.DataFrame:
     )
 
 
-# ==========================================================
-# Prediction helpers
-# ==========================================================
-
 def confidence_from_scores(scores) -> np.ndarray:
-    """Map Perceptron decision scores to a 0-100 confidence percentage.
+    """Map decision scores to a 0-100 percentage.
 
-    A Perceptron has no ``predict_proba``, so this is a display-only proxy:
-    the magnitude of the decision function saturates at 5.
-
-    Parameters
-    ----------
-    scores
-        Scalar or array of decision scores.
-
-    Returns
-    -------
-    numpy.ndarray
-        Confidence percentages rounded to two decimals.
+    A Perceptron has no ``predict_proba``, so this is a display-only proxy: the
+    magnitude of the decision function saturates at 5.
     """
     values = np.asarray(scores, dtype=float)
     return np.round(np.minimum(np.abs(values) / 5.0, 1.0) * 100, 2)
@@ -224,16 +187,8 @@ def calculate_confidence(decision_score: float) -> float:
 def predict_email(email_text: str) -> dict:
     """Classify a single preprocessed email.
 
-    Parameters
-    ----------
-    email_text
-        Preprocessed email text.
-
-    Returns
-    -------
-    dict
-        Keys ``prediction``, ``label``, ``decision_score``, ``confidence``
-        and ``vector`` (the sparse TF-IDF row, for explainability).
+    Returns the ``prediction``, ``label``, ``decision_score`` and ``confidence``
+    plus the sparse ``vector``, which the explainability helpers need.
     """
     model, vectorizer = load_model()
 
@@ -259,27 +214,9 @@ def predict_batch(
 ) -> pd.DataFrame:
     """Classify many emails with a single vectorised pass.
 
-    The previous implementation looped row by row, issuing one
-    ``vectorizer.transform`` and one ``model.predict`` per email. That is
-    quadratic in overhead for large uploads. This version transforms and scores
-    whole chunks at once, which is typically two to three orders of magnitude
-    faster for a 100k-row file.
-
-    Parameters
-    ----------
-    texts
-        Preprocessed email bodies.
-    model, vectorizer
-        Optional preloaded artefacts; loaded on demand when omitted.
-    chunk_size
-        Rows per transform, bounding peak memory for very large inputs.
-    progress
-        Optional ``callback(done, total)`` invoked after each chunk.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Columns ``Prediction``, ``Decision Score`` and ``Confidence (%)``.
+    Rows are transformed and scored in chunks, which is orders of magnitude
+    faster than one call per email for large uploads. ``progress`` is an
+    optional ``callback(done, total)`` invoked after each chunk.
     """
     if model is None or vectorizer is None:
         model, vectorizer = load_model()

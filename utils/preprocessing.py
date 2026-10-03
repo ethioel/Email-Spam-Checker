@@ -16,10 +16,6 @@ import pandas as pd
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# ==========================================================
-# NLTK resources
-# ==========================================================
-
 def _download(resource: str) -> None:
     """Best-effort download of a single NLTK corpus."""
     try:
@@ -31,14 +27,11 @@ def _download(resource: str) -> None:
 def _load_resources() -> tuple[frozenset, WordNetLemmatizer]:
     """Return the stopword set and lemmatizer, downloading corpora if needed.
 
-    Availability is confirmed by actually exercising each resource rather than
-    by ``nltk.data.find``. On NLTK 3.10 the wordnet corpus resolves only as
-    ``wordnet.zip``, so a plain ``find("corpora/wordnet")`` reports a false
-    negative even though the lemmatizer works fine.
-
-    Missing corpora would not raise on their own: the lemmatizer would quietly
-    degrade and change the token stream, so a genuinely unusable corpus raises
-    a clear error instead of silently skewing predictions.
+    Availability is confirmed by exercising each resource rather than with
+    ``nltk.data.find``: on NLTK 3.10 the wordnet corpus resolves only as
+    ``wordnet.zip``, so a plain lookup reports a false negative. Missing corpora
+    would not raise on their own, so an unusable corpus fails loudly here
+    instead of silently changing the token stream.
     """
     for resource in ("stopwords", "wordnet"):
         _download(resource)
@@ -59,14 +52,6 @@ def _load_resources() -> tuple[frozenset, WordNetLemmatizer]:
 
 STOP_WORDS, LEMMATIZER = _load_resources()
 
-# ==========================================================
-# Precompiled cleaning rules
-#
-# Compiled once at import time. The previous implementation recompiled every
-# regex and rebuilt the punctuation table on each call, which is measurable
-# overhead when preprocessing tens of thousands of emails.
-# ==========================================================
-
 _HTML_RE = re.compile(r"<.*?>")
 _URL_RE = re.compile(r"http\S+|www\S+")
 _EMAIL_RE = re.compile(r"\S+@\S+")
@@ -79,18 +64,9 @@ _PUNCT_TABLE = str.maketrans("", "", string.punctuation)
 def preprocess_text(text: str) -> str:
     """Clean and normalise a single email.
 
-    Steps: lowercase, strip HTML, URLs, email addresses, numbers and
-    punctuation, collapse whitespace, drop stopwords, then lemmatise.
-
-    Parameters
-    ----------
-    text
-        Raw email body.
-
-    Returns
-    -------
-    str
-        Whitespace-separated cleaned tokens, ready for the vectorizer.
+    Lowercase, strip HTML, URLs, email addresses, numbers and punctuation,
+    collapse whitespace, drop stopwords, then lemmatise. Returns cleaned tokens
+    ready for the vectorizer.
     """
     if not isinstance(text, str):
         return ""
@@ -115,15 +91,5 @@ def preprocess_series(series: pd.Series) -> pd.Series:
 
     Missing values become empty strings rather than ``NaN`` so the result can be
     handed straight to the vectorizer.
-
-    Parameters
-    ----------
-    series
-        Series of raw email bodies.
-
-    Returns
-    -------
-    pandas.Series
-        Series of cleaned emails, aligned with the input index.
     """
     return series.astype("object").where(series.notna(), "").map(preprocess_text)

@@ -13,14 +13,8 @@ from utils.preprocessing import preprocess_series
 from utils.sidebar import setup_page
 from utils.visualization import plot_length_histogram, plot_pie
 
-# Page configuration, sidebar and stylesheet in one call. Previously this page
-# skipped render_sidebar() entirely and then read st.session_state.theme_mode,
-# which raised KeyError on every load.
 setup_page("Batch Prediction", "📂")
 
-# Session keys for the uploaded file and the results derived from it. Results are
-# stored together with the column they were produced from, so a new upload can
-# never be analysed against a stale column name.
 SIGNATURE_KEY = "batch_signature"
 RESULT_KEY = "batch_result"
 COLUMN_KEY = "batch_text_column"
@@ -43,20 +37,12 @@ def _top_words(
     return clean[mask].str.split().explode().value_counts().head(top_n)
 
 
-# ==========================================================
-# Header
-# ==========================================================
-
 theme.page_header(
     "📂 Batch Email Classification",
     "Upload a CSV file and classify every email with the trained Perceptron model.",
 )
 
 st.divider()
-
-# ==========================================================
-# Upload
-# ==========================================================
 
 uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -84,17 +70,9 @@ st.success(f"Loaded {len(source_df):,} rows × {source_df.shape[1]} columns.")
 with st.expander("Dataset Preview", expanded=True):
     st.dataframe(source_df.head(10))
 
-# ==========================================================
-# Column selection
-# ==========================================================
-
 text_column = st.selectbox("Select the email text column", list(source_df.columns))
 
 st.divider()
-
-# ==========================================================
-# Batch prediction
-# ==========================================================
 
 if st.button("🚀 Predict Entire Dataset", width="stretch"):
     model, vectorizer = load_model()
@@ -147,10 +125,6 @@ if st.button("🚀 Predict Entire Dataset", width="stretch"):
 
     st.divider()
 
-# ==========================================================
-# Analytics
-# ==========================================================
-
 result_df = st.session_state.get(RESULT_KEY)
 
 if result_df is None:
@@ -160,8 +134,8 @@ if result_df is None:
     )
     st.stop()
 
-# Always read the column from the stored result, never the widget: the widget
-# resets when the file changes, which previously mis-filtered stale results.
+# The widget resets when the file changes, so the column is always read from the
+# stored result instead of the widget state.
 analysed_column = st.session_state[COLUMN_KEY]
 
 total_rows = len(result_df)
@@ -179,10 +153,6 @@ theme.metric_row(
 )
 
 st.divider()
-
-# ----------------------------------------------------------
-# Filter and search
-# ----------------------------------------------------------
 
 filter_col, search_col = st.columns([1, 2])
 
@@ -207,10 +177,6 @@ if search.strip():
 st.info(f"Displaying {len(filtered_df):,} of {total_rows:,} emails.")
 
 st.divider()
-
-# ----------------------------------------------------------
-# Distribution
-# ----------------------------------------------------------
 
 if filtered_df.empty:
     st.warning("No emails match the current filter.")
@@ -238,10 +204,6 @@ else:
 
     st.divider()
 
-    # ----------------------------------------------------------
-    # Dataset statistics
-    # ----------------------------------------------------------
-
     st.subheader("📈 Dataset Statistics")
 
     lengths = filtered_df[analysed_column].astype(str).str.len()
@@ -262,10 +224,6 @@ else:
 
     st.divider()
 
-    # ----------------------------------------------------------
-    # Most frequent words
-    # ----------------------------------------------------------
-
     st.header("🧠 Most Frequent Words")
 
     clean_column = filtered_df["Clean Email"]
@@ -282,10 +240,6 @@ else:
             st.dataframe(word_counts.rename("Count").to_frame())
         st.divider()
 
-    # ----------------------------------------------------------
-    # Results
-    # ----------------------------------------------------------
-
     st.subheader("📋 Prediction Results")
     st.dataframe(filtered_df, hide_index=True)
 
@@ -298,10 +252,6 @@ else:
     )
 
     st.divider()
-
-    # ----------------------------------------------------------
-    # Summary
-    # ----------------------------------------------------------
 
     st.header("📋 Batch Summary")
 
@@ -330,9 +280,5 @@ else:
     )
 
     st.divider()
-
-# ==========================================================
-# Footer
-# ==========================================================
 
 theme.footer()

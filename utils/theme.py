@@ -12,19 +12,15 @@ from string import Template
 
 import streamlit as st
 
-# ==========================================================
-# Branding
-# ==========================================================
-
 APP_NAME = "Email Spam Checker"
 APP_URL = "https://mailspamchecker.streamlit.app/"
+NOTEBOOK_URL = (
+    "https://www.kaggle.com/code/ethioel/"
+    "email-spam-detection-using-perceptron-tf-idf"
+)
 
 THEME_KEY = "theme_mode"
 TOGGLE_KEY = "sidebar_dark_mode"
-
-# ==========================================================
-# Palettes
-# ==========================================================
 
 _PALETTES = {
     "dark": {
@@ -75,13 +71,6 @@ _PALETTES = {
     },
 }
 
-# ==========================================================
-# Global stylesheet
-# ==========================================================
-
-# The <style> wrapper is mandatory. Streamlit renders markdown with raw HTML
-# enabled, but bare CSS rules are not HTML: without the wrapper the browser
-# treats them as a paragraph of text and prints them on the page.
 _CSS = Template(
     """
 <style>
@@ -233,10 +222,6 @@ h1, h2, h3, h4 {
 )
 
 
-# ==========================================================
-# Theme state
-# ==========================================================
-
 def mode() -> str:
     """Return the active theme mode without assuming it was initialised."""
     return st.session_state.get(THEME_KEY, "dark")
@@ -266,10 +251,6 @@ def render_toggle() -> str:
     return st.session_state[THEME_KEY]
 
 
-# ==========================================================
-# Presentation helpers
-# ==========================================================
-
 def hero(title: str, subtitle: str, pills: list[str]) -> None:
     """Render the gradient hero banner with pill badges."""
     badges = "".join(f'<span class="pill">{pill}</span>' for pill in pills)
@@ -297,14 +278,7 @@ def page_header(title: str, subtitle: str) -> None:
 
 
 def metric_row(items: list[tuple[str, object]]) -> None:
-    """Render a row of equal-width metric cards.
-
-    Parameters
-    ----------
-    items
-        Sequence of ``(label, value)`` pairs. At most six are shown side by
-        side before wrapping onto a second row.
-    """
+    """Render ``(label, value)`` cards, wrapping after six per row."""
     per_row = min(max(len(items), 1), 6)
     for start in range(0, len(items), per_row):
         chunk = items[start : start + per_row]

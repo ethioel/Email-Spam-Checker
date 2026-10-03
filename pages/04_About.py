@@ -9,15 +9,10 @@ from utils import theme
 from utils.model_loader import DATASET, get_model_info, load_metrics
 from utils.sidebar import setup_page
 
-# Page configuration, sidebar and stylesheet in one call.
 setup_page("About", "ℹ️")
 
 metrics = load_metrics()
 model_info = get_model_info()
-
-# ==========================================================
-# Header
-# ==========================================================
 
 theme.page_header(
     "ℹ️ About This Project",
@@ -26,10 +21,6 @@ theme.page_header(
 )
 
 st.divider()
-
-# ==========================================================
-# Overview
-# ==========================================================
 
 st.header("📌 Project Overview")
 
@@ -50,10 +41,6 @@ showcasing the complete machine learning pipeline.
 
 st.divider()
 
-# ==========================================================
-# Features
-# ==========================================================
-
 st.header("🚀 Application Features")
 
 st.dataframe(
@@ -63,8 +50,7 @@ st.dataframe(
                 "📧 Single Email Prediction",
                 "📂 Batch Prediction",
                 "🧠 Explainable AI",
-                "📊 Model Analytics",
-                "📈 Performance Dashboard",
+                "📊 Model Analytics & Performance",
                 "📥 CSV Export",
                 "🔍 Vocabulary Search",
                 "🌓 Dark / Light Mode",
@@ -73,8 +59,7 @@ st.dataframe(
                 "Predict Spam or Ham for one email",
                 "Predict hundreds or thousands of emails",
                 "Explain why the model made a prediction",
-                "Explore learned feature weights",
-                "View evaluation metrics",
+                "Evaluation metrics and learned feature weights",
                 "Download prediction results",
                 "Search learned vocabulary",
                 "Switch between light and dark themes",
@@ -85,10 +70,6 @@ st.dataframe(
 )
 
 st.divider()
-
-# ==========================================================
-# Technologies
-# ==========================================================
 
 st.header("🛠️ Technologies Used")
 
@@ -121,10 +102,6 @@ st.dataframe(
 )
 
 st.divider()
-
-# ==========================================================
-# Pipeline
-# ==========================================================
 
 st.header("🧠 Machine Learning Pipeline")
 
@@ -160,11 +137,12 @@ st.dataframe(
     hide_index=True,
 )
 
-st.divider()
+st.caption(
+    "Steps 1–7 are reproduced end to end in the training notebook; step 8 is this app."
+)
+st.link_button("📓 Training notebook on Kaggle", theme.NOTEBOOK_URL)
 
-# ==========================================================
-# Dataset
-# ==========================================================
+st.divider()
 
 st.header("📚 Dataset Information")
 
@@ -190,10 +168,6 @@ st.info(
 )
 
 st.divider()
-
-# ==========================================================
-# Model
-# ==========================================================
 
 st.header("🤖 Model Information")
 
@@ -227,43 +201,42 @@ st.dataframe(
 
 st.divider()
 
-# ==========================================================
-# Project structure
-#
-# Generated from the real tree so it cannot go stale the way a hand-written
-# listing did: it previously advertised emoji-prefixed page filenames and an
-# `explain.py` module, neither of which exist.
-# ==========================================================
-
 st.header("📂 Project Structure")
 
 root = Path(__file__).resolve().parent.parent
-skip_dirs = {".git", ".kilo", "__pycache__", ".devcontainer", "images", "notebooks"}
-entries = sorted(
-    (p for p in root.iterdir() if p.name not in skip_dirs and not p.name.startswith(".")),
-    key=lambda p: (p.is_file(), p.name.lower()),
-)
+skip = {".git", ".kilo", "__pycache__", "images"}
+
+
+def _visible(directory: Path) -> list[Path]:
+    return sorted(
+        (
+            path
+            for path in directory.iterdir()
+            if path.name not in skip and not path.name.startswith(".")
+        ),
+        key=lambda path: (path.is_file(), path.name.lower()),
+    )
+
+
+def _branch(index: int, total: int) -> str:
+    return "└──" if index == total - 1 else "├──"
+
+
+entries = _visible(root)
 lines = [f"{root.name}/"]
-for entry in entries:
-    lines.append(f"├── {entry.name}" + ("/" if entry.is_dir() else ""))
-    if entry.is_dir():
-        children = sorted(entry.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
-        for index, child in enumerate(children):
-            if child.name in skip_dirs or child.name.startswith("."):
-                continue
-            branch = "└──" if index == len(children) - 1 else "├──"
-            suffix = "/" if child.is_dir() and child.name != "__pycache__" else ""
-            if child.name == "__pycache__":
-                continue
-            lines.append(f"│   {branch} {child.name}{suffix}")
+for index, entry in enumerate(entries):
+    suffix = "/" if entry.is_dir() else ""
+    lines.append(f"{_branch(index, len(entries))} {entry.name}{suffix}")
+    if not entry.is_dir():
+        continue
+    children = _visible(entry)
+    for position, child in enumerate(children):
+        suffix = "/" if child.is_dir() else ""
+        lines.append(f"│   {_branch(position, len(children))} {child.name}{suffix}")
 
 st.code("\n".join(lines), language="text")
 
 st.divider()
-
-# ==========================================================
-# Performance
-# ==========================================================
 
 st.header("🏆 Model Performance")
 
@@ -289,10 +262,6 @@ st.success(
 )
 
 st.divider()
-
-# ==========================================================
-# Future work
-# ==========================================================
 
 st.header("🎯 Future Improvements")
 
@@ -321,9 +290,5 @@ st.dataframe(
 )
 
 st.divider()
-
-# ==========================================================
-# Footer
-# ==========================================================
 
 theme.footer()

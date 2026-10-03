@@ -32,21 +32,9 @@ def _feature_types(words) -> np.ndarray:
 def explain_prediction(model, vectorizer, vector) -> pd.DataFrame:
     """Explain one prediction by scoring each active TF-IDF feature.
 
-    Parameters
-    ----------
-    model
-        Trained Perceptron.
-    vectorizer
-        Fitted TF-IDF vectorizer.
-    vector
-        Sparse row of TF-IDF values for a single email.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Columns ``Word``, ``Feature Type``, ``TF-IDF``, ``Weight``,
-        ``Contribution`` and ``Direction``, sorted by descending absolute
-        contribution. Empty when the email matched no known vocabulary.
+    Returns ``Word``, ``Feature Type``, ``TF-IDF``, ``Weight``, ``Contribution``
+    and ``Direction``, sorted by descending absolute contribution. Empty when
+    the email matched no known vocabulary.
     """
     tfidf_values = np.asarray(vector.todense()).ravel()
     active = np.flatnonzero(tfidf_values)
@@ -135,20 +123,8 @@ def prediction_summary(df: pd.DataFrame) -> dict:
 def vocabulary_frame(model, vectorizer) -> pd.DataFrame:
     """Return every learned feature with its weight and n-gram type.
 
-    Built once and cached by the caller: it is a 10k-row frame recomputed on
-    every rerun of the Model Analytics page in the previous implementation.
-
-    Parameters
-    ----------
-    model
-        Trained Perceptron.
-    vectorizer
-        Fitted TF-IDF vectorizer.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Columns ``Word``, ``Feature Type`` and ``Weight``.
+    Callers cache this: it is a 10k-row frame that would otherwise be rebuilt
+    on every rerun of the Model Analytics page.
     """
     words = vectorizer.get_feature_names_out()
     return pd.DataFrame(
@@ -161,22 +137,7 @@ def vocabulary_frame(model, vectorizer) -> pd.DataFrame:
 
 
 def global_feature_importance(model, vectorizer, top_n: int = 20):
-    """Return the globally strongest Spam and Ham features.
-
-    Parameters
-    ----------
-    model
-        Trained Perceptron.
-    vectorizer
-        Fitted TF-IDF vectorizer.
-    top_n
-        Rows per side.
-
-    Returns
-    -------
-    tuple
-        ``(spam_df, ham_df)``
-    """
+    """Return the ``(spam_df, ham_df)`` of the strongest features per side."""
     importance = vocabulary_frame(model, vectorizer)
 
     spam = importance.nlargest(top_n, "Weight").reset_index(drop=True)
@@ -185,18 +146,7 @@ def global_feature_importance(model, vectorizer, top_n: int = 20):
 
 
 def explain_decision(score: float) -> dict:
-    """Turn a Perceptron decision score into a human-readable explanation.
-
-    Parameters
-    ----------
-    score
-        Raw decision function value.
-
-    Returns
-    -------
-    dict
-        Keys ``Prediction``, ``Confidence``, ``Score`` and ``Interpretation``.
-    """
+    """Turn a Perceptron decision score into a human-readable explanation."""
     magnitude = abs(score)
 
     if magnitude >= 5:

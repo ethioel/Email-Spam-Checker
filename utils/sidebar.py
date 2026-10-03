@@ -9,7 +9,8 @@ Navigation is intentionally *not* rendered here. Streamlit already discovers the
 files in ``pages/`` and draws the navigation itself; adding manual
 ``st.sidebar.page_link`` entries produced duplicate links and, on Streamlit
 >= 1.36, raised ``StreamlitPageNotFoundError`` because ``page_link`` only
-accepts pages registered through ``st.Page``/``st.navigation``.
+accepts pages registered through ``st.Page``/``st.navigation``. Sidebar order is
+therefore controlled by the numeric filename prefixes in ``pages/``.
 """
 
 from __future__ import annotations
@@ -43,13 +44,7 @@ def _render_model_health(metrics: dict) -> None:
 
 
 def render_sidebar(metrics: dict) -> None:
-    """Render the shared sidebar.
-
-    Parameters
-    ----------
-    metrics
-        Evaluation metrics dictionary from :func:`utils.model_loader.load_metrics`.
-    """
+    """Render brand, theme toggle and model health using the loaded metrics."""
     _render_brand()
     st.sidebar.markdown("---")
     theme.render_toggle()
@@ -57,17 +52,7 @@ def render_sidebar(metrics: dict) -> None:
 
 
 def setup_page(title: str, icon: str) -> None:
-    """Bootstrap a page: config, sidebar and stylesheet.
-
-    Must be the first statement of every page script.
-
-    Parameters
-    ----------
-    title
-        Browser tab title.
-    icon
-        Emoji favicon.
-    """
+    """Bootstrap a page: config, sidebar and stylesheet, in that order."""
     from utils.model_loader import load_metrics
 
     st.set_page_config(
@@ -77,7 +62,5 @@ def setup_page(title: str, icon: str) -> None:
         initial_sidebar_state="expanded",
     )
 
-    # The sidebar must run first so `theme_mode` exists (and reflects the
-    # toggle) before the stylesheet is generated from it.
     render_sidebar(load_metrics())
     theme.inject_css()

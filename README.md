@@ -1,26 +1,51 @@
 <div align="center">
 
+# 📧 Email Spam Checker
+
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://mailspamchecker.streamlit.app/)
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/streamlit-1.47%2B-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.7%2B-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Live](https://img.shields.io/badge/live-mailspamchecker.streamlit.app-ff4b4b?style=for-the-badge&logo=streamlit&logoColor=white)](https://mailspamchecker.streamlit.app/)
+[![Training notebook](https://img.shields.io/badge/training%20notebook-Kaggle-20beff?style=for-the-badge&logo=kaggle&logoColor=white)](https://www.kaggle.com/code/ethioel/email-spam-detection-using-perceptron-tf-idf)
+[![License: MIT](https://img.shields.io/badge/License-MIT-16a34a?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/ethioel/Email-Spam-Checker?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ethioel/Email-Spam-Checker/stargazers)
+[![Forks](https://img.shields.io/github/forks/ethioel/Email-Spam-Checker?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ethioel/Email-Spam-Checker/network/members)
+[![Last commit](https://img.shields.io/github/last-commit/ethioel/Email-Spam-Checker?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ethioel/Email-Spam-Checker/commits/main)
 
-# Email Spam Checker
+**An end-to-end Machine Learning and Natural Language Processing app that classifies emails
+as Spam or Ham using TF-IDF features and a Perceptron classifier — with explainable AI,
+batch scoring and an interactive analytics dashboard.**
 
-**Live app:** <https://mailspamchecker.streamlit.app/>
-
-An end-to-end **Machine Learning** and **Natural Language Processing** application that
-classifies emails as **Spam** or **Ham** using TF-IDF features and a **Perceptron**
-classifier, with explainable AI, batch scoring and an interactive analytics dashboard.
+[View the live app →](https://mailspamchecker.streamlit.app/)
 
 </div>
+
+---
+
+## Highlights
+
+| Model | Result |
+| --- | ---: |
+| Accuracy | **97.68%** |
+| Precision | **98.21%** |
+| Recall | **96.86%** |
+| F1 Score | **97.53%** |
+
+## Stack
+
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/streamlit-%3E%3D1.47-ff4b4b?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-%3E%3D1.7-f7931e?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Pandas](https://img.shields.io/badge/pandas-%3E%3D2.3-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![NumPy](https://img.shields.io/badge/numpy-%3E%3D2.3-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
+[![Matplotlib](https://img.shields.io/badge/matplotlib-%3E%3D3.10-11557c?style=for-the-badge&logo=matplotlib&logoColor=white)](https://matplotlib.org/)
+[![NLTK](https://img.shields.io/badge/nltk-%3E%3D3.9-154c89?style=for-the-badge&logo=python&logoColor=white)](https://www.nltk.org/)
+[![Joblib](https://img.shields.io/badge/joblib-%3E%3D1.5-badb29?style=for-the-badge&logo=python&logoColor=white)](https://joblib.readthedocs.io/)
 
 ---
 
 ## Contents
 
 - [Overview](#overview)
-- [Highlights](#highlights)
+- [App pages](#app-pages)
 - [Screenshots](#screenshots)
 - [Dataset](#dataset)
 - [How it works](#how-it-works)
@@ -33,6 +58,7 @@ classifier, with explainable AI, batch scoring and an interactive analytics dash
 - [Getting started](#getting-started)
 - [Retraining the model](#retraining-the-model)
 - [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
@@ -43,19 +69,24 @@ full machine-learning workflow: raw text cleaning, feature extraction, linear mo
 evaluation, interpretability and deployment.
 
 **Email Spam Checker** covers that entire pipeline. The trained model is served through a
-six-page Streamlit dashboard that lets you classify one email or thousands, inspect exactly
-which words drove a decision, and explore the vocabulary the model actually learned.
+five-view Streamlit dashboard that classifies one email or thousands, shows exactly which
+words drove a decision, and exposes the vocabulary the model actually learned.
 
-## Highlights
+## App pages
 
-- **Single email prediction** with decision score, confidence band and a clear Spam/Ham verdict
-- **Explainable AI** - every prediction is decomposed into per-word feature contributions
-- **Batch prediction** from an uploaded CSV, scored in a single vectorised pass
-- **Vocabulary explorer** - search all 10,000 learned features and inspect their weights
-- **Performance dashboard** - accuracy, precision, recall, F1 and the confusion matrix, all read
-  straight from the stored evaluation artefacts so the numbers can never drift apart
-- **Light and dark themes** via a single sidebar toggle
-- **CSV export** for both predictions and per-feature explanations
+Sidebar order is set by the numeric prefix on each file in `pages/`, so it is explicit and
+stable:
+
+| # | Page | File | What it does |
+| ---: | --- | --- | --- |
+| 1 | **Home** | `app.py` | Landing page: headline metrics, pipeline, dataset facts |
+| 2 | **Single Prediction** | `pages/01_Single_Prediction.py` | Classify one email with decision score, confidence and full XAI breakdown |
+| 3 | **Batch Prediction** | `pages/02_Batch_Prediction.py` | Upload a CSV, score every row in one vectorised pass, filter and export |
+| 4 | **Model Analytics** | `pages/03_Model_Analytics.py` | Metrics **and** learned-feature exploration in one dashboard, split into `Performance` and `Model Analytics` tabs |
+| 5 | **About** | `pages/04_About.py` | Project reference: pipeline, dataset, model, generated file tree |
+
+Every page opens with `setup_page(...)`, which sets the page config, renders the shared
+sidebar (brand, dark/light toggle, model health) and injects the one global stylesheet.
 
 ## Screenshots
 
@@ -118,7 +149,7 @@ Spam / Ham + confidence + influential words
 ## Text preprocessing
 
 `utils/preprocessing.py` is the shared contract between training and serving. If this changes,
-the saved model must be retrained - otherwise the token stream drifts and predictions silently
+the saved model must be retrained — otherwise the token stream drifts and predictions silently
 degrade. The steps, in order:
 
 1. Lowercase
@@ -200,36 +231,35 @@ shows the strongest Spam and Ham words, a full contribution table, and a CSV exp
 ## Project structure
 
 ```
-Email-Spam-Classifier/
-|-- app.py                     # Landing page and entry point
+Email-Spam-Checker/
+|-- app.py                       # Landing page and entry point
 |-- pages/
-|   |-- Single_Prediction.py   # Single email classification + XAI
-|   |-- Batch_Prediction.py    # CSV batch scoring and analytics
-|   |-- Model_Analytics.py     # Vocabulary and weight exploration
-|   |-- Performance.py         # Evaluation metrics dashboard
-|   `-- About.py               # Project, dataset and model reference
+|   |-- 01_Single_Prediction.py  # Single email classification + XAI
+|   |-- 02_Batch_Prediction.py   # CSV batch scoring and analytics
+|   |-- 03_Model_Analytics.py    # Performance + learned-feature dashboards
+|   `-- 04_About.py              # Project, dataset and model reference
 |-- utils/
 |   |-- __init__.py
-|   |-- theme.py               # Palettes, global stylesheet, UI helpers
-|   |-- sidebar.py             # setup_page() bootstrap + sidebar
-|   |-- model_loader.py        # Artefact loading and prediction helpers
-|   |-- preprocessing.py       # Cleaning, stopwords, lemmatisation
-|   |-- explainable.py         # Per-feature contribution analysis
-|   `-- visualization.py       # Matplotlib charts
+|   |-- theme.py                 # Palettes, global stylesheet, UI helpers
+|   |-- sidebar.py               # setup_page() bootstrap + sidebar
+|   |-- model_loader.py          # Artefact loading and prediction helpers
+|   |-- preprocessing.py         # Cleaning, stopwords, lemmatisation
+|   |-- explainable.py           # Per-feature contribution analysis
+|   `-- visualization.py         # Matplotlib charts
 |-- models/
-|   |-- perceptron_model.pkl   # Trained classifier
-|   `-- tfidf_vectorizer.pkl   # Fitted vectoriser
+|   |-- perceptron_model.pkl     # Trained classifier
+|   `-- tfidf_vectorizer.pkl     # Fitted vectoriser
 |-- results/
-|   |-- metrics.json           # accuracy, precision, recall, f1_score
-|   `-- confusion_matrix.npy   # 2x2 test-set confusion matrix
-|-- notebooks/
-|   `-- Email_Spam_Classification_Perceptron.ipynb
-|-- images/                    # README screenshots
-|-- .devcontainer/
-|   `-- devcontainer.json      # Optional VS Code / Codespaces container
+|   |-- metrics.json             # accuracy, precision, recall, f1_score
+|   `-- confusion_matrix.npy     # 2x2 test-set confusion matrix
+|-- images/                      # README screenshots
 |-- requirements.txt
 `-- README.md
 ```
+
+> The training notebook lives on Kaggle, not in this repository:
+> [Email Spam Detection using Perceptron & TF-IDF](https://www.kaggle.com/code/ethioel/email-spam-detection-using-perceptron-tf-idf).
+> See [Retraining the model](#retraining-the-model) for how to bring its output back.
 
 ### Design notes
 
@@ -237,6 +267,8 @@ Email-Spam-Classifier/
   pages cannot drift out of sync. Pages never inline CSS.
 - **One page bootstrap.** Every page opens with `setup_page(title, icon)`, which sets the page
   config, renders the sidebar and injects the stylesheet in a fixed order.
+- **Filename-driven navigation.** The sidebar is rendered by Streamlit from `pages/`; the numeric
+  filename prefixes define the order and are stripped from the displayed labels.
 - **Artefacts, not constants.** Evaluation numbers live in `results/` and are loaded at runtime.
 - **Cached work.** The model is loaded once per server process; the vocabulary tables and CSV
   parsing are cached across reruns.
@@ -259,19 +291,15 @@ Email-Spam-Classifier/
 **Prerequisites:** Python 3.11 or newer.
 
 ```bash
-git clone https://github.com/<your-username>/Email-Spam-Classifier.git
-cd Email-Spam-Classifier
+git clone https://github.com/ethioel/Email-Spam-Checker.git
+cd Email-Spam-Checker
 ```
 
-Create a virtual environment:
+Create and activate a virtual environment:
 
 ```bash
 python -m venv .venv
-```
 
-Activate it:
-
-```bash
 # Windows
 .venv\Scripts\activate
 
@@ -279,15 +307,10 @@ Activate it:
 source .venv/bin/activate
 ```
 
-Install dependencies:
+Install dependencies and run the app:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Run the app:
-
-```bash
 streamlit run app.py
 ```
 
@@ -305,23 +328,24 @@ python -m nltk.downloader stopwords wordnet
 If they cannot be downloaded, the app fails fast with an explicit error rather than quietly
 changing the token stream.
 
-### Optional: dev container
-
-`.devcontainer/devcontainer.json` pins a Python 3.11 container, installs dependencies and
-auto-launches Streamlit on port 8501. Use **Reopen in Container** in VS Code, or open the repo
-in GitHub Codespaces. It is entirely optional - running locally needs nothing extra.
-
 ## Retraining the model
 
-1. Put `spam_ham_dataset.csv` beside the notebook
-2. Open `notebooks/Email_Spam_Classification_Perceptron.ipynb` and run every cell
-3. Move the outputs into place:
-   - `perceptron_model.pkl` and `tfidf_vectorizer.pkl` -> `models/`
-   - `accuracy` / `precision` / `recall` / `f1_score` -> `results/metrics.json`
-   - `confusion_matrix.npy` -> `results/`
+Training is kept on Kaggle so this repository stays a deployable app rather than a
+notebook dump. The full pipeline — EDA, preprocessing, TF-IDF, the train/test split,
+Perceptron training and evaluation — is documented end to end in:
 
-Keep `utils/preprocessing.py` in sync with the notebook's cleaning step, then regenerate the
-Performance dashboard figures so the app and the artefacts stay consistent.
+**[Email Spam Detection using Perceptron & TF-IDF](https://www.kaggle.com/code/ethioel/email-spam-detection-using-perceptron-tf-idf)**
+
+To refresh the artefacts this app serves:
+
+1. Run the Kaggle notebook top to bottom (Kaggle supplies the dataset and the runtime)
+2. Download the four artefacts it produces
+3. Commit them to this repository:
+   - `perceptron_model.pkl` and `tfidf_vectorizer.pkl` → `models/`
+   - `accuracy` / `precision` / `recall` / `f1_score` → `results/metrics.json`
+   - `confusion_matrix.npy` → `results/`
+4. Keep `utils/preprocessing.py` in sync with the notebook's cleaning step, then re-run
+   the app so the Model Analytics page picks up the new artefacts
 
 ## Roadmap
 
@@ -331,6 +355,10 @@ Performance dashboard figures so the app and the artefacts stay consistent.
 - REST API for real-time inference
 - Continuous retraining on newly labelled data
 - Docker and cloud deployment
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ---
 
